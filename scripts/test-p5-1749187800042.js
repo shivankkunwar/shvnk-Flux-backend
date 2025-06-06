@@ -1,0 +1,12 @@
+
+function setup() {
+  createCanvas(400, 400);
+}
+
+function draw() {
+  background(20);
+  noStroke();
+  fill(100, 200, 250);
+  const d = 50 + 25 * sin(frameCount * 0.1);
+  ellipse(width / 2, height / 2, d, d);
+}
