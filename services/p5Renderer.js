@@ -14,9 +14,10 @@ const MEDIA_DIR   = path.join(__dirname, '..', 'media', 'videos');
  * @param {string} code  - The JavaScript p5.js code (sketch.js content)
  * @param {string} runId - Unique identifier for this render job
  * @param {function(string):void} [logFn] - Optional logging callback
+ * @param {number} [durationSecs=4] - Duration of the video in seconds
  * @returns {Promise<string>} - Resolves to the path of the generated MP4
  */
-async function generateWithP5(code, runId, logFn = () => {}) {
+async function generateWithP5(code, runId, logFn = () => {}, durationSecs = 4) {
   // 1) Ensure output directories exist
   if(!fs.existsSync(SCRIPTS_DIR)) fs.mkdirSync(SCRIPTS_DIR, { recursive: true });
   if(!fs.existsSync(MEDIA_DIR)) fs.mkdirSync(MEDIA_DIR, { recursive: true });
@@ -62,7 +63,9 @@ async function generateWithP5(code, runId, logFn = () => {}) {
   // 5) Capture frames
   const framesDir = path.join(outDir, 'frames');
   fs.mkdirSync(framesDir, { recursive: true });
-  const totalFrames = 120;
+  // Determine total frames based on duration (seconds) and frame rate
+  const frameRateValue = 30;
+  const totalFrames = durationSecs * frameRateValue;
   for (let i = 0; i < totalFrames; i++) {
     const imgPath = path.join(framesDir, `${String(i).padStart(4, '0')}.png`);
     await page.screenshot({ path: imgPath });

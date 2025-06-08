@@ -1,38 +1,35 @@
 const { GoogleGenAI } = require("@google/genai");
+const { manimSystemPrompt } = require('./manimPrompts');
+const { p5SystemPrompt } = require('./p5Prompts');
+const validateManimCode = require('./codegenValidator');
 
 async function generateCode(prompt, engine, apiKey) {
   const ai = new GoogleGenAI({
     apiKey: apiKey,
   });
 
-  let messages;
   let model = "gemini-2.0-flash";
+  let contents;
 
   if (engine === "p5") {
-    model = "gemini-2.5-pro";
-    messages = [
-      {
-        role: "system",
-        content: "Generate valid p5.js JavaScript. Start with function setup(). No explanations, comments, or markdown."
-      },
-      { role: "user", content: `p5.js sketch: ${prompt}` }
-    ];
+    // Prompt for p5.js code using detailed system prompt
+    const userPrompt = `Sketch description: ${prompt}`;
+    contents = [p5SystemPrompt, userPrompt].join("\n");
   } else if (engine === "manim") {
-    model = "gemini-2.5-pro";
-    messages = [
-      {
-        role: "system",
-        content: "Generate Python with class GeneratedScene extends Scene. No explanations, comments, or markdown."
-      },
-      { role: "user", content: `Manim scene: ${prompt}` }
-    ];
+    // Prompt for Manim code using the shared system prompt
+    const userPrompt = `Scene description: ${prompt}`;
+    contents = [manimSystemPrompt, userPrompt].join("\n");
   } else {
     throw new Error("Invalid engine in generateCode");
   }
 
-  const res = await ai.generateContent({ model, messages });
-  const raw = res.text();
+  // Call the text generation API with the assembled prompt
+  const response = await ai.models.generateContent({ model, contents });
+  // Extract the raw code text
+  const raw = response.text;
   const cleaned = cleanCode(raw);
+  // Validate against banned Manim constructs to avoid runtime errors
+  if (engine === 'manim') validateManimCode(cleaned);
   validateGeneratedCode(cleaned, engine);
   return cleaned;
 }
@@ -56,5 +53,3 @@ function validateGeneratedCode(code, engine) {
 }
 
 module.exports = { generateCode };
-
-

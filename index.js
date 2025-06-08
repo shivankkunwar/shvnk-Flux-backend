@@ -4,6 +4,7 @@
 const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 
 // Utilities (to be implemented)
 const detectChrome = require('./utils/detectChrome');
@@ -12,7 +13,7 @@ const detectManim = require('./utils/detectManim');
 // Services (to be implemented)
 const { generateWithP5 } = require('./services/p5Renderer');
 const { generateWithManim } = require('./services/manimRenderer');
-const { generateCode } = require('./services/codegenService');
+const { generateCode } = require('./utils/codegenService');
 
 // In-memory store for render jobs
 const jobs = {};
@@ -20,6 +21,9 @@ const jobs = {};
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve video files from media/videos
+app.use('/videos', express.static(path.join(__dirname, 'media', 'videos')));
 
 // Health-check endpoint
 app.get('/health', async (req, res) => {
@@ -40,7 +44,7 @@ app.get('/health', async (req, res) => {
 
 // Generate endpoint
 app.post('/api/generate', async (req, res) => {
-  const { prompt, engine, apiKey } = req.body;
+  const { prompt, engine, apiKey, duration } = req.body;
   const runId = uuidv4();
   jobs[runId] = { logs: [], status: 'pending', videoPath: null };
 
@@ -55,14 +59,16 @@ app.post('/api/generate', async (req, res) => {
         let videoPath;
         if (engine === 'p5') {
           // Render with p5.js, passing a logger that pushes into our jobs map
-          videoPath = await generateWithP5(code, runId, msg => jobs[runId].logs.push(msg));
+          videoPath = await generateWithP5(code, runId, msg => jobs[runId].logs.push(msg), duration);
         } else if (engine === 'manim') {
           // Render with Manim (no per-frame logs)
           videoPath = await generateWithManim(code, runId);
         } else {
           throw new Error('Invalid engine during render');
         }
-        jobs[runId].videoPath = videoPath;
+        // Derive URL from returned file path
+        const filename = path.basename(videoPath);
+        jobs[runId].videoPath = `/videos/${runId}/${filename}`;
         jobs[runId].status = 'done';
         jobs[runId].logs.push('Rendering complete');
       } catch (err) {
