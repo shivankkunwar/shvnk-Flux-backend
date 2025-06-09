@@ -14,6 +14,7 @@ const detectManim = require('./utils/detectManim');
 const { generateWithP5 } = require('./services/p5Renderer');
 const { generateWithManim } = require('./services/manimRenderer');
 const { generateCode } = require('./utils/codegenService');
+const { performHealthCheck } = require('./services/healthCheck');
 
 // In-memory store for render jobs
 const jobs = {};
@@ -25,20 +26,25 @@ app.use(express.json());
 // Serve video files from media/videos
 app.use('/videos', express.static(path.join(__dirname, 'media', 'videos')));
 
-// Health-check endpoint
-app.get('/health', async (req, res) => {
-  const engine = req.query.engine;
-  try{
-    if(engine === 'p5') {
-        await detectChrome();
-      } else if (engine === 'manim') {
-        await detectManim();
-      } else{
-        return res.status(400).json({available:false, reason:'Invalid engine'});
-      }
-    res.status(200).json({available:true});
+// Enhanced health-check endpoint
+app.get('/api/health', async (req, res) => {
+  const engine = req.query.engine || 'both';
+  
+  try {
+    // Perform comprehensive health check
+    const healthResults = await performHealthCheck(engine);
+    
+    // Return detailed results
+    res.status(200).json({
+      success: true,
+      ...healthResults
+    });
   } catch (error) {
-    res.status(200).json({ available: false, reason: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -61,14 +67,14 @@ app.post('/api/generate', async (req, res) => {
           // Render with p5.js, passing a logger that pushes into our jobs map
           videoPath = await generateWithP5(code, runId, msg => jobs[runId].logs.push(msg), duration);
         } else if (engine === 'manim') {
-          // Render with Manim (no per-frame logs)
-          videoPath = await generateWithManim(code, runId);
+          // Render with Manim (with per-step logs)
+          videoPath = await generateWithManim(code, runId, msg => jobs[runId].logs.push(msg));
         } else {
           throw new Error('Invalid engine during render');
         }
         // Derive URL from returned file path
         const filename = path.basename(videoPath);
-        jobs[runId].videoPath = `/videos/${runId}/${filename}`;
+        jobs[runId].videoPath = `/videos/${filename}`;
         jobs[runId].status = 'done';
         jobs[runId].logs.push('Rendering complete');
       } catch (err) {

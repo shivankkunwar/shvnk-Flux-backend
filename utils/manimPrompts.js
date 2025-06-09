@@ -20,6 +20,8 @@ Generate a single, complete, runnable Manim script that accurately animates the 
 - Any axis-related mobjects or number lines
 - Any usage of \`manim.config\` or \`config[...]\` (e.g., for frame dimensions)
 - Any direct reference to \`self.mobjects\`
+- \`set_points_as_smooth_curve\` with \`use_quadratic_bezier\` parameter (deprecated)
+- \`VMobject().set_points_as_smooth_curve(points, use_quadratic_bezier=True)\` (use \`VMobject().set_points_smoothly(points)\` instead)
 
 **REQUIRED IMPORTS:**
 Always include these imports at the top of your code:
@@ -45,6 +47,26 @@ from functools import partial
 - \`Dot([x, y, 0])\` for points
 - Always use 3D coordinates: [x, y, 0] format
 
+**CURVE CREATION (UPDATED API):**
+For smooth curves, use the current API:
+\`\`\`python
+# Create points for the curve
+points = []
+for x in range(start, end, step):
+    y = your_function(x)
+    points.append([x, y, 0])
+
+# Create curve using current API
+curve = VMobject()
+curve.set_points_smoothly(points)  # Do NOT use use_quadratic_bezier parameter
+curve.set_color(GREEN)
+\`\`\`
+
+**ALTERNATIVE CURVE METHODS:**
+- Use \`FunctionGraph\` for mathematical functions (when available)
+- Use multiple \`Line\` objects connected for piecewise linear approximations
+- Use \`Polygon\` for closed shapes
+
 **ANIMATION TECHNIQUES:**
 - Use \`ValueTracker\` for smooth parameter changes (series terms, function parameters, etc.)
 - Link visuals with \`always_redraw\` or \`add_updater\` for dynamic content
@@ -62,6 +84,13 @@ def update_function():
     
 updated_mobject = always_redraw(update_function)
 \`\`\`
+
+**ERROR PREVENTION:**
+- Always test parameter names and method signatures
+- Use simple, well-documented Manim methods
+- Avoid experimental or deprecated features
+- Keep code structure simple and readable
+- Use try-catch only when absolutely necessary
 
 **NARRATIVE STRUCTURE:**
 - **Introduction**: Display title/main equation, then clear for demonstration

@@ -76,12 +76,14 @@ async function generateWithP5(code, runId, logFn = () => {}, durationSecs = 4) {
 
   // 6) Encode with FFmpeg
   const framesPattern = path.join(framesDir, '%04d.png');
-  const outputPath    = path.join(outDir, 'animation.mp4');
+  const tempOutputPath = path.join(outDir, 'animation.mp4');
+  const finalOutputPath = path.join(MEDIA_DIR, `${runId}.mp4`);
+  
   const ffArgs = [
     '-y', '-framerate', '30',
     '-i', framesPattern,
     '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
-    outputPath
+    tempOutputPath
   ];
   await new Promise((resolve, reject) => {
     const ffProc = spawn(ffmpegPath, ffArgs);
@@ -90,11 +92,13 @@ async function generateWithP5(code, runId, logFn = () => {}, durationSecs = 4) {
   });
   logFn('Video encoding complete');
 
-  // 7) Cleanup frames
-  fs.rmSync(framesDir, { recursive: true, force: true });
+  // 7) Move video to final location and cleanup temporary directory
+  fs.copyFileSync(tempOutputPath, finalOutputPath);
+  fs.rmSync(outDir, { recursive: true, force: true });
+  logFn(`Video saved to ${finalOutputPath}`);
 
   // 8) Return final video path
-  return outputPath;
+  return finalOutputPath;
 }
 
 module.exports = { generateWithP5 }; 
