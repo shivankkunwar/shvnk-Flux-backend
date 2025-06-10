@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+const { app } = require('electron');
 const { spawn } = require('child_process');
 const detectManim = require('../utils/detectManim');
 
 // Directories for scripts and generated media
-const SCRIPTS_DIR = path.join(__dirname, '..', 'scripts');
-const MEDIA_DIR   = path.join(__dirname, '..', 'media', 'videos');
+const SCRIPTS_DIR = path.join(app.getPath('userData'), 'scripts');
+const MEDIA_DIR   = path.join(app.getPath('userData'), 'media', 'videos');
 
 /**
  * Renders a Manim Scene to a video file.
