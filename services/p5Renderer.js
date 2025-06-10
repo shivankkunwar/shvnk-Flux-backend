@@ -4,10 +4,11 @@ const puppeteer = require('puppeteer-core');
 const detectChrome = require('../utils/detectChrome');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const { spawn } = require('child_process');
+const { app } = require('electron');
 
 // Directories for scripts and generated media
-const SCRIPTS_DIR = path.join(__dirname, '..', 'scripts');
-const MEDIA_DIR   = path.join(__dirname, '..', 'media', 'videos');
+const SCRIPTS_DIR = path.join(app.getPath('userData'), 'scripts');
+const MEDIA_DIR   = path.join(app.getPath('userData'), 'media', 'videos');
 
 /**
  * Renders a p5.js sketch to a video file.
